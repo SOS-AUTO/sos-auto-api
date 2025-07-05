@@ -67,7 +67,7 @@ npm run start:dev
 
 ## 📄 Documentação Swagger
 
-> Disponível em: http://localhost:3000/docs
+> Disponível em: http://localhost:3000/api/docs
 
 ## 🧪 Testes
 
