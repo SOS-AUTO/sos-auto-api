@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===== Enums =====
+enum PartnerType {
+  MECHANIC_SHOP
+  TOWING_COMPANY
+  INSURANCE_COMPANY
+}
+
+// ===== Models =====
+model Partner {
+  id        String     @id @default(uuid())
+  name      String
+  type      PartnerType
+  email     String     @unique
+  phone     String?
+  address   String
+  latitude  Float?
+  longitude Float?
+  city      String?
+  province  String?
+  createdAt DateTime   @default(now())
+  //Relationships
+  style     PartnerStyle? // relação 1:1 com tabela de estilo
+  mechanics Mechanic[]
+  towings   Towing[]
+  insurers  Insurer[]
+}
+model PartnerStyle {
+  id         String   @id @default(uuid())
+  logoUrl    String?  // URL do logotipo
+  primaryColor   String?  // Cor primária (ex:rgb(227, 41, 41))
+  secondaryColor String?  // Cor secundária
+  theme      String?  // ex: "dark", "light", "custom"
+  font       String?  // ex: "Roboto", "Arial"
+  partnerId  String   @unique
+  partner    Partner  @relation(fields: [partnerId], references: [id])
+  createdAt  DateTime @default(now())
+}
+
+
+model Driver {
+  id          String             @id @default(uuid())
+  name        String
+  email       String             @unique
+  password    String
+  createdAt   DateTime           @default(now())
+  insurerId   String? // Optional foreign key
+  isBlocked   Boolean            @default(false)
+  insurer     Insurer?           @relation(fields: [insurerId], references: [id])
+  permissions DriverPermission[] @relation("DriverHasPermissions")
+}
+
+model Mechanic {
+  id          String               @id @default(uuid())
+  name        String
+  email       String               @unique
+  password    String
+  companyId   String
+  createdAt   DateTime             @default(now())
+  partner     Partner              @relation(fields: [companyId], references: [id])
+  permissions MechanicPermission[] @relation("MechanicHasPermissions")
+}
+
+model Towing {
+  id          String             @id @default(uuid())
+  name        String
+  email       String             @unique
+  password    String
+  companyId   String
+  createdAt   DateTime           @default(now())
+  partner     Partner            @relation(fields: [companyId], references: [id])
+  permissions TowingPermission[] @relation("TowingHasPermissions")
+}
+
+model Insurer {
+  id          String              @id @default(uuid())
+  name        String
+  email       String              @unique
+  password    String
+  companyId   String
+  createdAt   DateTime            @default(now())
+  partner     Partner             @relation(fields: [companyId], references: [id])
+  drivers     Driver[] // All drivers under this insurer
+  permissions InsurerPermission[] @relation("InsurerHasPermissions")
+}
+
+model Admin {
+  id          String            @id @default(uuid())
+  name        String
+  email       String            @unique
+  password    String
+  createdAt   DateTime          @default(now())
+  permissions AdminPermission[] @relation("AdminHasPermissions")
+}
+
+model DriverPermission {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  drivers     Driver[] @relation("DriverHasPermissions")
+}
+
+model MechanicPermission {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  description String?
+  mechanics   Mechanic[] @relation("MechanicHasPermissions")
+}
+
+model TowingPermission {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  towings     Towing[] @relation("TowingHasPermissions")
+}
+
+model InsurerPermission {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  insurers    Insurer[] @relation("InsurerHasPermissions")
+}
+
+model AdminPermission {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  description String?
+  admins      Admin[] @relation("AdminHasPermissions")
+}
