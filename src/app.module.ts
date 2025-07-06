@@ -7,9 +7,10 @@ import { MechanicModule } from './mechanic/mechanic.module';
 import { TowingModule } from './towing/towing.module';
 import { InsurerModule } from './insurer/insurer.module';
 import { AdminModule } from './admin/admin.module';
+import { PrismaModule } from './common/prisma/prisma.module';
 
 @Module({
-  imports: [DriverModule, PartnerModule, MechanicModule, TowingModule, InsurerModule, AdminModule],
+  imports: [DriverModule, PartnerModule, MechanicModule, TowingModule, InsurerModule, AdminModule, PrismaModule],
   controllers: [AppController],
   providers: [AppService],
 })
