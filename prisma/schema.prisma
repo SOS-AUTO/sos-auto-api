@@ -1,3 +1,6 @@
+// Prisma Client Generator
+// Gera cliente para interagir com o banco
+// ======================================================
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,7 +10,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ===== Enums =====
+// Enums de tipos de parceiros e status de apólices
+// ======================================================
 enum PartnerType {
   MECHANIC_SHOP
   TOWING_COMPANY
@@ -21,8 +25,32 @@ enum StatusApolice {
   REJEITADA
   EXPIRADA
 }
+enum PartnerPlanType {
+  STARTER
+  PRO
+  VIP
+}
+enum StatusAssinatura {
+  ATIVO
+  EXPIRADO
+  CANCELADO
+}
 
-// ===== Models =====
+enum MetodoPagamento {
+  MCX
+  CASH
+  TRANSFERENCIA
+}
+
+enum StatusSubscricao {
+  ATIVO
+  EXPIRADO
+  CANCELADO
+}
+
+
+// Tabela de parceiros (oficinas, guinchos, seguradoras)
+// ======================================================
 model Partner {
   id              String            @id @default(uuid())
   name            String
@@ -35,54 +63,125 @@ model Partner {
   city            String?
   province        String?
   createdAt       DateTime          @default(now())
-  //Relationships
-  style           PartnerStyle? // relação 1:1 com tabela de estilo
+  style           PartnerStyle?
   insurancePolicy InsurancePolicy[]
   mechanics       Mechanic[]
   towings         Towing[]
   insurers        Insurer[]
+  assistancePlans AssistancePlan[]
+  financials      FinancialRecord[]
+  PartnerSubscription PartnerSubscription[]
+  PartnerService PartnerService[]
 }
 
+/// Planos que um parceiro pode escolher (valores mensais fixos)
+model PartnerPlan {
+  id          String           @id @default(uuid())
+  name        String
+  type        PartnerPlanType
+  precoMensal Float
+  inclui      String?          // Descrição das vantagens
+  comissao    Float?           // % de comissão em atendimentos (caso aplicável)
+  createdAt   DateTime         @default(now())
+  requests_limit Boolean
+  subscriptions PartnerSubscription[]
+}
+/// Subscrições feitas pelos parceiros aos planos disponíveis
+model PartnerSubscription {
+  id            String        @id @default(uuid())
+  partnerId     String
+  planId        String
+  dataInicio    DateTime
+  dataFim       DateTime
+  meses         Int           // número de meses (1, 6 ou 12)
+  valorTotal    Float
+  status        String        @default("ATIVO") // ATIVO, EXPIRADO, CANCELADO
+  createdAt     DateTime      @default(now())
+
+  partner       Partner       @relation(fields: [partnerId], references: [id])
+  plan          PartnerPlan   @relation(fields: [planId], references: [id])
+  pagamento     PartnerPayment?
+}
+model PartnerPayment {
+  id                  String   @id @default(uuid())
+  subscriptionId      String   @unique
+  metodoPagamento     String   // "MCX", "CASH", "TRANSFERENCIA"
+  valor               Float
+  foiPago             Boolean  @default(false)
+  dataPagamento       DateTime?
+
+  subscription        PartnerSubscription @relation(fields: [subscriptionId], references: [id])
+}
+
+
+// Estilo visual personalizado por parceiro (cores, fonte etc.)
 model PartnerStyle {
   id             String   @id @default(uuid())
-  logoUrl        String? // URL do logotipo
-  primaryColor   String? // Cor primária (ex:rgb(227, 41, 41))
-  secondaryColor String? // Cor secundária
-  theme          String? // ex: "dark", "light", "custom"
-  font           String? // ex: "Roboto", "Arial"
+  logoUrl        String?
+  primaryColor   String?
+  secondaryColor String?
+  theme          String?
+  font           String?
   partnerId      String   @unique
   partner        Partner  @relation(fields: [partnerId], references: [id])
   createdAt      DateTime @default(now())
 }
 
+// Motoristas (clientes)
+model Driver {
+  id             String                 @id @default(uuid())
+  name           String
+  email          String                 @unique
+  password       String
+  createdAt      DateTime               @default(now())
+  isBlocked      Boolean                @default(false)
+  permissions    DriverPermission[]     @relation("DriverHasPermissions")
+  vehicles       Vehicle[]
+  rescueRequests RescueRequest[]
+  plans          DriverAssistancePlan[]
+}
+
+// Cadastro de veículos dos motoristas
+model Vehicle {
+  id        String            @id @default(uuid())
+  driverId  String
+  marca     String
+  modelo    String
+  matricula String            @unique
+  ano       Int?
+  cor       String?
+  createdAt DateTime          @default(now())
+  driver    Driver            @relation(fields: [driverId], references: [id])
+  requests  RescueRequest[] // Chamadas de socorro feitas com este veículo
+  insurance InsurancePolicy[] // Apólices vinculadas ao veículo
+
+  DriverAssistancePlan DriverAssistancePlan[]
+}
+
+// Registro de apólices de seguro dos motoristas
+// Registro de apólices de seguro dos veículos (não do motorista)
 model InsurancePolicy {
   id            String        @id @default(uuid())
-  driverId      String
-  insurerId     String
+  vehicleId     String // Agora vinculado ao veículo
+  insurerId     String // Seguradora responsável
   numeroApolice String?       @unique
   dataInicio    DateTime?
   dataFim       DateTime?
   status        StatusApolice @default(PENDENTE)
-  documentosUrl Json?
-  observacoes   String?
-  driver        Driver        @relation(fields: [driverId], references: [id])
-  partner       Partner       @relation(fields: [insurerId], references: [id])
+  documentosUrl Json? // URLs dos documentos enviados (apólice escaneada, doc do carro, etc.)
+  observacoes   String? // Comentários ou exigências da seguradora
+  cobertura Json? // informações do que está incluído: reboque, assistência mecânica, etc.
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // Relações
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  partner Partner @relation(fields: [insurerId], references: [id]) // seguradora parceira
+
+  AssistancePolicy AssistancePolicy[]
 }
 
-model Driver {
-  id              String             @id @default(uuid())
-  name            String
-  email           String             @unique
-  password        String
-  createdAt       DateTime           @default(now())
-  isBlocked       Boolean            @default(false)
-  insurancePolicy InsurancePolicy[]
-  permissions     DriverPermission[] @relation("DriverHasPermissions")
-}
-
+// Profissionais mecânicos vinculados às oficinas
 model Mechanic {
   id          String               @id @default(uuid())
   name        String
@@ -94,6 +193,7 @@ model Mechanic {
   permissions MechanicPermission[] @relation("MechanicHasPermissions")
 }
 
+// Profissionais de guincho
 model Towing {
   id          String             @id @default(uuid())
   name        String
@@ -105,6 +205,7 @@ model Towing {
   permissions TowingPermission[] @relation("TowingHasPermissions")
 }
 
+// Funcionários das seguradoras
 model Insurer {
   id          String              @id @default(uuid())
   name        String
@@ -116,6 +217,7 @@ model Insurer {
   permissions InsurerPermission[] @relation("InsurerHasPermissions")
 }
 
+// Administrador do sistema
 model Admin {
   id          String            @id @default(uuid())
   name        String
@@ -125,6 +227,7 @@ model Admin {
   permissions AdminPermission[] @relation("AdminHasPermissions")
 }
 
+// Permissões (divididas por tipo de usuário)
 model DriverPermission {
   id          String   @id @default(uuid())
   name        String   @unique
@@ -158,4 +261,146 @@ model AdminPermission {
   name        String  @unique
   description String?
   admins      Admin[] @relation("AdminHasPermissions")
+}
+
+/// Serviços que cada parceiro oferece (ex: troca de óleo, reboque, etc.)
+model PartnerService {
+  id          String   @id @default(uuid())
+  partnerId   String             // Quem oferece o serviço
+  nome        String             // Ex: Troca de óleo, Reboque leve
+  descricao   String?
+  precoBase   Float              // Preço inicial
+  duracaoEstimadaMinutos Int?   // Ex: 30 minutos
+  ativo       Boolean  @default(true)
+  criadoEm    DateTime @default(now())
+  partner     Partner  @relation(fields: [partnerId], references: [id])
+  atendimentos RescueService[]   // Relacionamento com os atendimentos executados
+}
+/// Registro do serviço realizado em um atendimento (pode ser múltiplos por pedido)
+model RescueService {
+  id              String   @id @default(uuid())
+  rescueRequestId String
+  serviceId       String
+  precoFinal      Float     // Pode mudar conforme o caso
+  observacao      String?
+  executadoEm     DateTime  @default(now())
+
+  rescueRequest   RescueRequest @relation(fields: [rescueRequestId], references: [id])
+  service         PartnerService @relation(fields: [serviceId], references: [id])
+}
+
+// Pedido de socorro feito pelo cliente (motorista)
+model RescueRequest {
+  id            String   @id @default(uuid())
+  driverId      String
+  vehicleId     String
+  problema      String
+  localizacao   String
+  latitude      Float
+  longitude     Float
+  status        String   @default("AGUARDANDO")
+  createdAt     DateTime @default(now())
+  driver        Driver           @relation(fields: [driverId], references: [id])
+  vehicle       Vehicle          @relation(fields: [vehicleId], references: [id])
+  pagamento     Payment?
+  logs          ServiceLog[]
+  financeiro    FinancialRecord[]
+  RescueService RescueService[]
+}
+
+
+// Registro de pagamento vinculado ao pedido
+model Payment {
+  id              String   @id @default(uuid())
+  rescueRequestId String   @unique
+  metodoPagamento MetodoPagamento
+  valorTotal      Float
+  foiPago         Boolean  @default(false)
+  pagoAntes       Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  rescueRequest RescueRequest @relation(fields: [rescueRequestId], references: [id])
+}
+
+// Log de status de um atendimento (aceito, a caminho, finalizado etc.)
+model ServiceLog {
+  id              String   @id @default(uuid())
+  rescueRequestId String
+  status          String
+  descricao       String?
+  criadoEm        DateTime @default(now())
+
+  rescueRequest RescueRequest @relation(fields: [rescueRequestId], references: [id])
+}
+
+/// Plano de assistência oferecido por seguradoras (B2B) neste caso, ao criar apolice na apilce consta o que 
+/// Ele cobre entao o que esta aqui no assisten plano deve ir na apolice de quem escolher este plano
+/// Assim vamos verificar apenas na apolice !
+model AssistancePlan {
+  id           String   @id @default(uuid())
+  name         String
+  descricao    String?
+  precoMensal  Float            // Preço mensal
+  cobertura    Json             // JSON com tipos de serviços incluídos
+  createdAt    DateTime @default(now())
+  partnerId    String
+  partner      Partner                @relation(fields: [partnerId], references: [id])
+  assinaturas  DriverAssistancePlan[] // Assinaturas feitas por motoristas
+  AssistancePolicy AssistancePolicy[]
+}
+/// Vínculo entre motorista e plano de assistência contratado
+model DriverAssistancePlan {
+  id               String              @id @default(uuid())
+  driverId         String
+  assistancePlanId String
+  vehicleId        String              // 🚗 Veículo vinculado ao plano
+  meses            Int                 // Quantidade de meses contratados
+  valorTotal       Float               // precoMensal * meses
+  dataInicio       DateTime
+  dataFim          DateTime
+  status           StatusAssinatura    @default(ATIVO)
+
+  driver           Driver              @relation(fields: [driverId], references: [id])
+  vehicle          Vehicle             @relation(fields: [vehicleId], references: [id])
+  assistancePlan   AssistancePlan      @relation(fields: [assistancePlanId], references: [id])
+  pagamento        DriverPlanPayment?
+}
+///Vai criar Apolice
+///Depois vai vincular apolice ao plano 
+model AssistancePolicy {
+  id                 String             @id @default(uuid())
+  assistancePlanId   String             // Plano de assistência escolhido
+  insurancePolicyId  String             // Apólice criada
+  dataInicio         DateTime
+  dataFim            DateTime
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  assistancePlan     AssistancePlan     @relation(fields: [assistancePlanId], references: [id])
+  insurancePolicy    InsurancePolicy    @relation(fields: [insurancePolicyId], references: [id])
+}
+
+/// Pagamento realizado pelo motorista ao contratar um plano
+model DriverPlanPayment {
+  id               String            @id @default(uuid())
+  assinaturaId     String            @unique
+  metodoPagamento  MetodoPagamento
+  valor            Float
+  foiPago          Boolean           @default(false)
+  dataPagamento    DateTime?
+  assinatura       DriverAssistancePlan @relation(fields: [assinaturaId], references: [id])
+}
+
+// Registro financeiro para controle de comissão/sistema/parceiro
+model FinancialRecord {
+  id              String   @id @default(uuid())
+  partnerId       String
+  rescueRequestId String
+  valorTotal      Float
+  metodoPagamento String
+  comissaoSistema Float
+  valorRecebido   Float
+  tipoPagamento   String
+  criadoEm        DateTime @default(now())
+  partner       Partner       @relation(fields: [partnerId], references: [id])
+  rescueRequest RescueRequest @relation(fields: [rescueRequestId], references: [id])
 }
