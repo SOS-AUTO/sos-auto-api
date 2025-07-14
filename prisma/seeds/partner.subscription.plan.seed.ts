@@ -5,6 +5,7 @@ enum PartnerPlanType {
   VIP='VIP'
 }
  const planos = [
+  
     {
       name: 'Starter',
       type: PartnerPlanType.STARTER,

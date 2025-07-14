@@ -1,26 +1,49 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+
 import { CreatePartnerDto } from './dto/create-partner.dto';
 import { UpdatePartnerDto } from './dto/update-partner.dto';
+import { PrismaService } from 'src/common/prisma/prisma.service';
 
 @Injectable()
 export class PartnerService {
-  create(createPartnerDto: CreatePartnerDto) {
-    return 'This action adds a new partner';
+  constructor(private readonly prisma: PrismaService) {}
+
+  async create(createPartnerDto: CreatePartnerDto) {
+    return this.prisma.partner.create({
+      data: createPartnerDto,
+    });
   }
 
-  findAll() {
-    return `This action returns all partner`;
+  async findAll() {
+    return this.prisma.partner.findMany();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} partner`;
+  async findOne(id: string) {
+    const partner = await this.prisma.partner.findUnique({
+      where: { id },
+    });
+
+    if (!partner) {
+      throw new NotFoundException(`Parceiro com ID ${id} não encontrado`);
+    }
+
+    return partner;
   }
 
-  update(id: number, updatePartnerDto: UpdatePartnerDto) {
-    return `This action updates a #${id} partner`;
+  async update(id: string, updatePartnerDto: UpdatePartnerDto) {
+    await this.findOne(id); // garante que existe antes de atualizar
+
+    return this.prisma.partner.update({
+      where: { id },
+      data: updatePartnerDto,
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} partner`;
+  async remove(id: string) {
+    await this.findOne(id); // garante que existe antes de remover
+
+    return this.prisma.partner.delete({
+      where: { id },
+    });
   }
 }
