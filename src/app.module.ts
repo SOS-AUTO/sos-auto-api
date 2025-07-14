@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { DriverModule } from './driver/driver.module';
+import { DriverModule } from './modules/driver/driver.module';
 import { PartnerModule } from './modules/partner/partner.module';
 import { MechanicModule } from './modules/partner/mechanic/mechanic.module';
 import { TowingModule } from './modules/partner/towing/towing.module';
