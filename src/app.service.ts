@@ -4,6 +4,7 @@ import { Request } from 'express';
 @Injectable()
 export class AppService {
   getApiInfo(req: Request) {
+    const host = req.headers.host || 'localhost:3000';
     return {
       name: 'SOS AUTO API',
       status: 'OK',
