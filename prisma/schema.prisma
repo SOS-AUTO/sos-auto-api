@@ -1,6 +1,4 @@
-// Prisma Client Generator
-// Gera cliente para interagir com o banco
-// ======================================================
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,7 +8,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Enums de tipos de parceiros e status de apólices
+// Enums
 // ======================================================
 enum PartnerType {
   MECHANIC_SHOP
@@ -47,7 +45,13 @@ enum StatusSubscricao {
   EXPIRADO
   CANCELADO
 }
-
+enum DocumentType {
+  LICENSE          // Driver’s License
+  ID_CARD          // National ID or Passport
+  INSURANCE        // Insurance-related document
+  VEHICLE_REGISTRATION // Vehicle document
+  OTHER            // Any other type of document
+}
 
 // Tabela de parceiros (oficinas, guinchos, seguradoras)
 // ======================================================
@@ -132,14 +136,37 @@ model Driver {
   id             String                 @id @default(uuid())
   name           String
   email          String                 @unique
-  password       String
   createdAt      DateTime               @default(now())
   isBlocked      Boolean                @default(false)
+  phone          String?                // Optional phone number
+  licenseNumber     String?                // Driver’s license number
+  licenseCategory   String?                // Example: B, C, D
+  licenseExpiryDate DateTime?              // License expiration date
+ 
+  updatedAt     DateTime      @updatedAt
   permissions    DriverPermission[]     @relation("DriverHasPermissions")
   vehicles       Vehicle[]
   rescueRequests RescueRequest[]
   plans          DriverAssistancePlan[]
+  driverDocuments DriverDocument[]
 }
+
+model DriverDocument {
+  id             String      @id @default(uuid())
+  driverId       String
+  type           DocumentType          // Enum for the type of document
+  url            String                // File URL (PDF, image, etc.)
+  uploadedAt     DateTime   @default(now())
+  expiresAt      DateTime?             // Optional, for licenses or insurances
+  verified       Boolean    @default(false) // Whether the document is verified
+  notes          String?               // Optional notes (e.g., "Needs renewal")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  driver         Driver     @relation(fields: [driverId], references: [id])
+}
+
+
+
 
 // Cadastro de veículos dos motoristas
 model Vehicle {
@@ -150,7 +177,8 @@ model Vehicle {
   matricula String            @unique
   ano       Int?
   cor       String?
-  createdAt DateTime          @default(now())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   driver    Driver            @relation(fields: [driverId], references: [id])
   requests  RescueRequest[] // Chamadas de socorro feitas com este veículo
   insurance InsurancePolicy[] // Apólices vinculadas ao veículo
