@@ -1,5 +1,5 @@
 # Nome do serviço principal (NestJS)
-APP=app
+APP=dev_app_sos
 
 
 # Arquivos do Docker Compose (já com -f incluído)

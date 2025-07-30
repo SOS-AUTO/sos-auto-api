@@ -26,7 +26,7 @@ services:
     depends_on:
       - postgres
 
-  app:
+  dev_app_sos:
     build: .
     container_name: dev_app_sos
     command: npm run start:dev
