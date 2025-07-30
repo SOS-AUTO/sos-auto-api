@@ -36,6 +36,11 @@ services:
       - postgres
     environment:
       DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/dev_db_sos?schema=public"
+      SUPABASE_URL: "https://lkzaeekeyzrkljazunbp.supabase.co"
+      SUPABASE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxremFlZWtleXpya2xqYXp1bmJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIzMTY1NTMsImV4cCI6MjA2Nzg5MjU1M30.7O1gT1Iy7dSRfCcmjg0a-UK-pZtpU4uxE7Z-J-Oo6WA"
+      SUPABASE_SERVICE_ROLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxremFlZWtleXpya2xqYXp1bmJwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MjMxNjU1MywiZXhwIjoyMDY3ODkyNTUzfQ.AoaZNrkLxPfeOX04uYUaALpwZZ_O4gQVHaZF8ObnxnU"
+      JWT_SECRET: super_secret_key_123
+      JWT_EXPIRATION: 1d
 
 volumes:
   postgres_data:
